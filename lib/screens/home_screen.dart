@@ -5,8 +5,14 @@ import '../services/location_service.dart';
 import 'recording_screen.dart';
 import 'trips_list_screen.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  bool _loading = false;
 
   @override
   Widget build(BuildContext context) {
@@ -40,17 +46,38 @@ class HomeScreen extends StatelessWidget {
               const Text('OFF-ROAD GPS NAVIGATOR',
                   style: TextStyle(color: Colors.grey, fontSize: 11, letterSpacing: 3)),
               const Spacer(),
+              // If already tracking show resume button
+              if (provider.isTracking) ...[
+                SizedBox(
+                  width: double.infinity, height: 64,
+                  child: ElevatedButton.icon(
+                    onPressed: () => Navigator.push(context,
+                        MaterialPageRoute(builder: (_) => const RecordingScreen())),
+                    icon: const Icon(Icons.gps_fixed),
+                    label: Text('RESUME: ${provider.activeTrip?.name ?? ""}',
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF4CAF50),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
               SizedBox(
                 width: double.infinity, height: 64,
                 child: ElevatedButton(
-                  onPressed: () => _startTrip(context, provider),
+                  onPressed: _loading ? null : () => _startTrip(context, provider),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFD4870A),
                     foregroundColor: Colors.black,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
-                  child: const Text('START TRIP',
-                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: 3)),
+                  child: _loading
+                      ? const CircularProgressIndicator(color: Colors.black)
+                      : const Text('START TRIP',
+                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: 3)),
                 ),
               ),
               const SizedBox(height: 16),
@@ -77,53 +104,102 @@ class HomeScreen extends StatelessWidget {
   }
 
   Future<void> _startTrip(BuildContext context, TripProvider provider) async {
-    final hasPermission = await LocationService.instance.requestPermission();
-    if (!hasPermission) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Location permission required')));
+    setState(() => _loading = true);
+
+    try {
+      final hasPermission = await LocationService.instance.requestPermission();
+      if (!hasPermission) {
+        if (mounted) {
+          _showError(context,
+              'Location permission denied.\nGo to Settings → Apps → Desert Track → Permissions → Allow Location');
+        }
+        return;
       }
-      return;
+
+      if (!mounted) return;
+
+      final controller = TextEditingController();
+      final name = await showDialog<String>(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: const Color(0xFF1A1A1A),
+          title: const Text('TRIP NAME',
+              style: TextStyle(
+                  color: Color(0xFFD4870A),
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 2)),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            style: const TextStyle(color: Colors.white),
+            decoration: const InputDecoration(
+              hintText: 'e.g. Rub al Khali North',
+              hintStyle: TextStyle(color: Colors.grey),
+              enabledBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: Color(0xFFD4870A))),
+              focusedBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: Color(0xFFD4870A), width: 2)),
+            ),
+            onSubmitted: (v) => Navigator.pop(ctx, v),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, null),
+              child: const Text('CANCEL', style: TextStyle(color: Colors.grey))),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, controller.text),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFD4870A),
+                foregroundColor: Colors.black,
+              ),
+              child: const Text('START',
+                  style: TextStyle(fontWeight: FontWeight.w900)),
+            ),
+          ],
+        ),
+      );
+
+      if (name == null || name.trim().isEmpty) return;
+      if (!mounted) return;
+
+      final started = await provider.startRecording(name.trim());
+
+      if (!started) {
+        if (mounted) _showError(context, 'Failed to start GPS. Check location settings.');
+        return;
+      }
+
+      if (mounted) {
+        Navigator.push(context,
+            MaterialPageRoute(builder: (_) => const RecordingScreen()));
+      }
+    } catch (e) {
+      if (mounted) _showError(context, 'Error: $e');
+    } finally {
+      if (mounted) setState(() => _loading = false);
     }
-    if (!context.mounted) return;
-    final controller = TextEditingController();
+  }
+
+  void _showError(BuildContext context, String message) {
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (_) => AlertDialog(
         backgroundColor: const Color(0xFF1A1A1A),
-        title: const Text('TRIP NAME',
-            style: TextStyle(color: Color(0xFFD4870A), fontWeight: FontWeight.w900, letterSpacing: 2)),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          style: const TextStyle(color: Colors.white),
-          decoration: const InputDecoration(
-            hintText: 'e.g. Rub al Khali North',
-            hintStyle: TextStyle(color: Colors.grey),
-            enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFFD4870A))),
-            focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFFD4870A), width: 2)),
-          ),
-        ),
+        title: const Row(children: [
+          Icon(Icons.warning, color: Color(0xFFCF6679)),
+          SizedBox(width: 8),
+          Text('ERROR', style: TextStyle(color: Color(0xFFCF6679), fontWeight: FontWeight.w900)),
+        ]),
+        content: Text(message, style: const TextStyle(color: Colors.white)),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('CANCEL', style: TextStyle(color: Colors.grey))),
           ElevatedButton(
-            onPressed: () async {
-              if (controller.text.isNotEmpty) {
-                await provider.startRecording(controller.text);
-                if (ctx.mounted) Navigator.pop(ctx);
-                if (context.mounted) {
-                  Navigator.push(context,
-                      MaterialPageRoute(builder: (_) => const RecordingScreen()));
-                }
-              }
-            },
+            onPressed: () => Navigator.pop(context),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFD4870A),
               foregroundColor: Colors.black,
             ),
-            child: const Text('START', style: TextStyle(fontWeight: FontWeight.w900)),
+            child: const Text('OK'),
           ),
         ],
       ),
