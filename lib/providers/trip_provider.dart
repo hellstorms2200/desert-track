@@ -16,6 +16,8 @@ class TripProvider extends ChangeNotifier {
   List<Trip> get trips => _trips;
   Trip? get activeTrip => _activeTrip;
   bool get isTracking => _isTracking;
+  double get currentDistance => _currentDistance;
+  Position? get currentPosition => _lastPosition;
 
   Future<void> loadTrips() async {
     _trips = await DatabaseService.instance.getAllTrips();
@@ -38,21 +40,17 @@ class TripProvider extends ChangeNotifier {
 
   void _onPosition(Position pos) {
     if (_lastPosition != null) {
-      _currentDistance += _distance(
+      _currentDistance += Geolocator.distanceBetween(
         _lastPosition!.latitude, _lastPosition!.longitude,
         pos.latitude, pos.longitude,
       );
     }
     _lastPosition = pos;
-    addTrackPoint(pos, _currentDistance);
+    _saveTrackPoint(pos);
     notifyListeners();
   }
 
-  double _distance(double lat1, double lon1, double lat2, double lon2) {
-    return Geolocator.distanceBetween(lat1, lon1, lat2, lon2);
-  }
-
-  Future<void> addTrackPoint(Position pos, double totalDistance) async {
+  Future<void> _saveTrackPoint(Position pos) async {
     if (_activeTrip == null) return;
     await DatabaseService.instance.insertTrackPoint(TrackPoint(
       tripId: _activeTrip!.id!,
@@ -60,8 +58,14 @@ class TripProvider extends ChangeNotifier {
       longitude: pos.longitude,
       altitude: pos.altitude,
       speed: pos.speed,
+      bearing: pos.heading >= 0 ? pos.heading : 0.0,
       timestamp: DateTime.now(),
     ));
+  }
+
+  Future<void> addTrackPoint(Position pos, double totalDistance) async {
+    _currentDistance = totalDistance;
+    await _saveTrackPoint(pos);
   }
 
   Future<void> stopTrip() async {
