@@ -20,34 +20,19 @@ android {
 
     defaultConfig {
         applicationId "com.deserttrack.app"
-        minSdk 21                          // Android 5+
+        minSdk 21
         targetSdk flutter.targetSdkVersion
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
-        multiDexEnabled true
     }
 
     buildTypes {
         release {
-            // Sign with debug key for testing; use your own keystore for production
             signingConfig signingConfigs.debug
-            minifyEnabled true
-            shrinkResources true
-            proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"),
-                         "proguard-rules.pro"
-        }
-        debug {
-            applicationIdSuffix ".debug"
-            debuggable true
         }
     }
 }
 
 flutter {
     source "../.."
-}
-
-dependencies {
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
-    implementation "androidx.multidex:multidex:2.0.1"
 }

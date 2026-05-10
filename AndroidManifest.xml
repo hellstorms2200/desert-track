@@ -1,38 +1,19 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Internet: download map tiles when online -->
     <uses-permission android:name="android.permission.INTERNET" />
-
-    <!-- GPS Permissions -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    <!-- Android 10+ background location (required for recording while screen off) -->
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
-
-    <!-- Keep CPU awake during recording -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
-
-    <!-- Foreground service (background GPS tracking) -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
 
-    <!-- Start on device boot (optional) -->
-    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-
-    <!-- Storage (for GPX/KML export) -->
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
-        android:maxSdkVersion="32" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
-        android:maxSdkVersion="29" />
-
     <uses-feature android:name="android.hardware.location.gps" android:required="true" />
-    <uses-feature android:name="android.hardware.location" android:required="true" />
 
     <application
         android:label="Desert Track"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
-        android:requestLegacyExternalStorage="true"
         android:hardwareAccelerated="true">
 
         <activity
@@ -44,31 +25,19 @@
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
             android:hardwareAccelerated="true"
             android:windowSoftInputMode="adjustResize">
-
             <meta-data
                 android:name="io.flutter.embedding.android.NormalTheme"
                 android:resource="@style/NormalTheme" />
-
             <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
 
-        <!-- flutter_foreground_task: GPS background service -->
         <service
             android:name="com.pravera.flutter_foreground_task.service.ForegroundService"
             android:foregroundServiceType="location"
             android:exported="false" />
-
-        <!-- flutter_foreground_task: restart receiver -->
-        <receiver
-            android:name="com.pravera.flutter_foreground_task.receiver.TaskRestartReceiver"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="android.intent.action.BOOT_COMPLETED" />
-            </intent-filter>
-        </receiver>
 
     </application>
 </manifest>
