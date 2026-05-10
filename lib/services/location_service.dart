@@ -5,8 +5,6 @@ class LocationService {
   static final LocationService instance = LocationService._();
   LocationService._();
 
-  Stream<Position>? _positionStream;
-
   void initForegroundTask() {
     FlutterForegroundTask.init(
       androidNotificationOptions: AndroidNotificationOptions(
@@ -20,8 +18,7 @@ class LocationService {
         showNotification: true,
         playSound: false,
       ),
-      foregroundTaskOptions: ForegroundTaskOptions(
-        eventAction: ForegroundTaskEventAction.repeat(3000),
+      foregroundTaskOptions: const ForegroundTaskOptions(
         autoRunOnBoot: false,
         allowWakeLock: true,
       ),
@@ -38,12 +35,11 @@ class LocationService {
   }
 
   Stream<Position> getPositionStream() {
-    _positionStream = Geolocator.getPositionStream(
+    return Geolocator.getPositionStream(
       locationSettings: const LocationSettings(
         accuracy: LocationAccuracy.bestForNavigation,
         distanceFilter: 5,
       ),
     );
-    return _positionStream!;
   }
 }

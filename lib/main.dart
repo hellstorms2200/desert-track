@@ -13,7 +13,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Required by flutter_foreground_task
-  FlutterForegroundTask.initCommunicationPort();
+  
 
   // Lock to portrait (optional, remove if landscape needed)
   await SystemChrome.setPreferredOrientations([
