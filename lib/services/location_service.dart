@@ -1,10 +1,10 @@
+import 'dart:async';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:geolocator/geolocator.dart';
 
 class LocationService {
   static final LocationService instance = LocationService._();
   LocationService._();
-
   StreamSubscription<Position>? _subscription;
   bool _isTracking = false;
   bool get isTracking => _isTracking;
@@ -14,12 +14,11 @@ class LocationService {
       androidNotificationOptions: AndroidNotificationOptions(
         channelId: 'desert_track_location',
         channelName: 'Desert Track GPS',
-        channelDescription: 'Tracking your desert route',
         channelImportance: NotificationChannelImportance.LOW,
         priority: NotificationPriority.LOW,
       ),
       iosNotificationOptions: const IOSNotificationOptions(
-        showNotification: true,
+        showNotification: false,
         playSound: false,
       ),
       foregroundTaskOptions: const ForegroundTaskOptions(
@@ -30,23 +29,21 @@ class LocationService {
   }
 
   Future<bool> requestPermission() async {
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
+    LocationPermission p = await Geolocator.checkPermission();
+    if (p == LocationPermission.denied) {
+      p = await Geolocator.requestPermission();
     }
-    return permission == LocationPermission.whileInUse ||
-        permission == LocationPermission.always;
+    return p == LocationPermission.whileInUse || p == LocationPermission.always;
   }
 
-  Future<bool> startTracking(Function(Position) onPosition) async {
-    final hasPermission = await requestPermission();
-    if (!hasPermission) return false;
+  Future<bool> startTracking(void Function(Position) onPosition) async {
+    if (!await requestPermission()) return false;
     _subscription = Geolocator.getPositionStream(
       locationSettings: const LocationSettings(
         accuracy: LocationAccuracy.bestForNavigation,
         distanceFilter: 5,
       ),
-    ).listen((pos) => onPosition(pos));
+    ).listen(onPosition);
     _isTracking = true;
     return true;
   }

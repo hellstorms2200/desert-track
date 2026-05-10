@@ -8,9 +8,7 @@ class TileCacheService {
   static Future<void> initialize() async {
     final dir = await getApplicationDocumentsDirectory();
     final cacheDir = Directory('${dir.path}/tile_cache');
-    if (!await cacheDir.exists()) {
-      await cacheDir.create(recursive: true);
-    }
+    if (!await cacheDir.exists()) await cacheDir.create(recursive: true);
   }
 
   static Future<String> cacheSizeFormatted() async {

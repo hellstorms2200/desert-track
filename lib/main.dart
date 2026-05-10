@@ -27,7 +27,6 @@ void main() async {
 
 class DesertTrackApp extends StatelessWidget {
   const DesertTrackApp({super.key});
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -52,11 +51,6 @@ class DesertTrackApp extends StatelessWidget {
           backgroundColor: Color(0xFF1A1A1A),
           foregroundColor: Colors.white,
           elevation: 0,
-        ),
-        cardTheme: CardThemeData(
-          color: const Color(0xFF1E1E1E),
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16)),
         ),
       ),
       home: const HomeScreen(),

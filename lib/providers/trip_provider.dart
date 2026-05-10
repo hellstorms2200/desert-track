@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import '../models/trip.dart';
@@ -10,33 +11,49 @@ class TripProvider extends ChangeNotifier {
   Trip? _activeTrip;
   bool _isTracking = false;
   double _currentDistance = 0;
+  Position? _lastPosition;
 
   List<Trip> get trips => _trips;
   Trip? get activeTrip => _activeTrip;
   bool get isTracking => _isTracking;
 
   Future<void> loadTrips() async {
-    _trips = await DatabaseService.instance.getTrips();
+    _trips = await DatabaseService.instance.getAllTrips();
     notifyListeners();
   }
 
-  Future<void> startTrip(String name) async {
+  Future<bool> startRecording(String name) async {
     final trip = Trip(name: name, startTime: DateTime.now());
     final id = await DatabaseService.instance.insertTrip(trip);
-    _activeTrip = Trip(id: id, name: name, startTime: trip.startTime);
+    _activeTrip = trip.copyWith(id: id);
     _currentDistance = 0;
+    _lastPosition = null;
     _isTracking = true;
-    await LocationService.instance.startTracking(_onPosition);
+    final started = await LocationService.instance.startTracking(_onPosition);
+    notifyListeners();
+    return started;
+  }
+
+  Future<void> startTrip(String name) async => startRecording(name);
+
+  void _onPosition(Position pos) {
+    if (_lastPosition != null) {
+      _currentDistance += _distance(
+        _lastPosition!.latitude, _lastPosition!.longitude,
+        pos.latitude, pos.longitude,
+      );
+    }
+    _lastPosition = pos;
+    addTrackPoint(pos, _currentDistance);
     notifyListeners();
   }
 
-  void _onPosition(Position pos) {
-    addTrackPoint(pos, _currentDistance);
+  double _distance(double lat1, double lon1, double lat2, double lon2) {
+    return Geolocator.distanceBetween(lat1, lon1, lat2, lon2);
   }
 
   Future<void> addTrackPoint(Position pos, double totalDistance) async {
     if (_activeTrip == null) return;
-    _currentDistance = totalDistance;
     await DatabaseService.instance.insertTrackPoint(TrackPoint(
       tripId: _activeTrip!.id!,
       latitude: pos.latitude,
@@ -50,12 +67,9 @@ class TripProvider extends ChangeNotifier {
   Future<void> stopTrip() async {
     if (_activeTrip == null) return;
     await LocationService.instance.stopTracking();
-    final finished = Trip(
-      id: _activeTrip!.id,
-      name: _activeTrip!.name,
-      startTime: _activeTrip!.startTime,
+    final finished = _activeTrip!.copyWith(
       endTime: DateTime.now(),
-      totalDistance: _currentDistance,
+      totalDistanceMeters: _currentDistance,
     );
     await DatabaseService.instance.updateTrip(finished);
     _activeTrip = null;
@@ -66,5 +80,14 @@ class TripProvider extends ChangeNotifier {
   Future<void> deleteTrip(int id) async {
     await DatabaseService.instance.deleteTrip(id);
     await loadTrips();
+  }
+
+  Future<void> renameTrip(int id, String newName) async {
+    await DatabaseService.instance.renameTrip(id, newName);
+    await loadTrips();
+  }
+
+  Future<Trip?> getTripWithDetails(int id) async {
+    return DatabaseService.instance.getTripById(id);
   }
 }

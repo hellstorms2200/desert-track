@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/trip_provider.dart';
-import '../services/tile_cache_service.dart';
+import '../services/location_service.dart';
 import 'recording_screen.dart';
 import 'trips_list_screen.dart';
 
@@ -10,319 +10,121 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
+    final provider = context.watch<TripProvider>();
     return Scaffold(
+      backgroundColor: const Color(0xFF0D0D0D),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Header
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: cs.primaryContainer,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Icon(Icons.explore,
-                        size: 40, color: cs.onPrimaryContainer),
-                  ),
-                  const SizedBox(width: 16),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Desert Track',
-                          style: Theme.of(context)
-                              .textTheme
-                              .headlineMedium
-                              ?.copyWith(fontWeight: FontWeight.bold)),
-                      Text('الملاحة البرية الحرة',
-                          style: TextStyle(color: cs.outline)),
-                    ],
-                  ),
-                  const Spacer(),
-                  // Settings / cache info
-                  IconButton(
-                    icon: const Icon(Icons.settings_outlined),
-                    onPressed: () => _showSettings(context),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 32),
-
-              // ── Main action: Start Trip ───────────────────────────────────
-              _BigButton(
-                icon: Icons.play_circle_fill_rounded,
-                label: 'بدء رحلة جديدة',
-                subtitle: 'تسجيل المسار بـ GPS',
-                color: cs.primary,
-                onTap: () => _startNewTrip(context),
-              ),
-
-              const SizedBox(height: 16),
-
-              // ── Trips list ────────────────────────────────────────────────
-              _BigButton(
-                icon: Icons.list_alt_rounded,
-                label: 'رحلاتي',
-                subtitle: 'عرض وإدارة الرحلات المحفوظة',
-                color: cs.secondary,
-                onTap: () => Navigator.push(context,
-                    MaterialPageRoute(
-                        builder: (_) => const TripsListScreen())),
-              ),
-
               const Spacer(),
-
-              // ── Status card ───────────────────────────────────────────────
-              Consumer<TripProvider>(
-                builder: (_, provider, __) {
-                  return Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Row(
-                        children: [
-                          Icon(
-                            provider.trips.isEmpty
-                                ? Icons.satellite_alt
-                                : Icons.check_circle,
-                            color: provider.trips.isEmpty
-                                ? cs.outline
-                                : Colors.green,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  provider.trips.isEmpty
-                                      ? 'لا توجد رحلات بعد'
-                                      : '${provider.trips.length} رحلة محفوظة',
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.bold),
-                                ),
-                                Text(
-                                  'خرائط أقمار صناعية مجانية – ESRI',
-                                  style: TextStyle(
-                                      fontSize: 12, color: cs.outline),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
+              Container(
+                width: 120, height: 120,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: const Color(0xFFD4870A), width: 2),
+                  color: const Color(0xFF1A1A1A),
+                ),
+                child: const Icon(Icons.explore, size: 72, color: Color(0xFFD4870A)),
               ),
-
+              const SizedBox(height: 16),
+              const Text('DESERT TRACK',
+                  style: TextStyle(
+                      color: Color(0xFFD4870A),
+                      fontSize: 22,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 4)),
               const SizedBox(height: 8),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _startNewTrip(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (ctx) => _NewTripDialog(onStart: (name) async {
-        Navigator.pop(ctx);
-        final provider = context.read<TripProvider>();
-        final started = await provider.startRecording(name);
-        if (!started && context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                  '⚠️ تعذّر تشغيل GPS. تحقق من أذونات الموقع.'),
-              backgroundColor: Colors.red,
-            ),
-          );
-          return;
-        }
-        if (context.mounted) {
-          Navigator.push(context,
-              MaterialPageRoute(builder: (_) => const RecordingScreen()));
-        }
-      }),
-    );
-  }
-
-  void _showSettings(BuildContext context) async {
-    final size = await TileCacheService.cacheSizeFormatted();
-    if (!context.mounted) return;
-    showModalBottomSheet(
-      context: context,
-      builder: (_) => _SettingsSheet(cacheSize: size),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _BigButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String subtitle;
-  final Color color;
-  final VoidCallback onTap;
-
-  const _BigButton({
-    required this.icon,
-    required this.label,
-    required this.subtitle,
-    required this.color,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: color,
-      borderRadius: BorderRadius.circular(20),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(20),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-          child: Row(
-            children: [
-              Icon(icon, size: 48, color: Colors.white),
-              const SizedBox(width: 20),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(label,
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 4),
-                    Text(subtitle,
-                        style: TextStyle(
-                            color: Colors.white.withOpacity(0.8),
-                            fontSize: 13)),
-                  ],
+              const Text('OFF-ROAD GPS NAVIGATOR',
+                  style: TextStyle(color: Colors.grey, fontSize: 11, letterSpacing: 3)),
+              const Spacer(),
+              SizedBox(
+                width: double.infinity, height: 64,
+                child: ElevatedButton(
+                  onPressed: () => _startTrip(context, provider),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFD4870A),
+                    foregroundColor: Colors.black,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  child: const Text('START TRIP',
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: 3)),
                 ),
               ),
-              const Icon(Icons.arrow_forward_ios,
-                  color: Colors.white, size: 20),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity, height: 56,
+                child: OutlinedButton(
+                  onPressed: () => Navigator.push(context,
+                      MaterialPageRoute(builder: (_) => const TripsListScreen())),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFFD4870A),
+                    side: const BorderSide(color: Color(0xFFD4870A), width: 2),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  child: const Text('MY TRIPS',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, letterSpacing: 3)),
+                ),
+              ),
+              const SizedBox(height: 48),
             ],
           ),
         ),
       ),
     );
   }
-}
 
-// ── New Trip Dialog ───────────────────────────────────────────────────────────
-
-class _NewTripDialog extends StatefulWidget {
-  final void Function(String name) onStart;
-  const _NewTripDialog({required this.onStart});
-
-  @override
-  State<_NewTripDialog> createState() => _NewTripDialogState();
-}
-
-class _NewTripDialogState extends State<_NewTripDialog> {
-  late final TextEditingController _ctrl;
-
-  @override
-  void initState() {
-    super.initState();
-    final now = DateTime.now();
-    _ctrl = TextEditingController(
-      text: 'رحلة ${now.day}-${now.month}-${now.year}',
-    );
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('رحلة جديدة'),
-      content: TextField(
-        controller: _ctrl,
-        autofocus: true,
-        decoration: const InputDecoration(
-          labelText: 'اسم الرحلة',
-          border: OutlineInputBorder(),
-          prefixIcon: Icon(Icons.drive_eta),
+  Future<void> _startTrip(BuildContext context, TripProvider provider) async {
+    final hasPermission = await LocationService.instance.requestPermission();
+    if (!hasPermission) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Location permission required')));
+      }
+      return;
+    }
+    if (!context.mounted) return;
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A1A),
+        title: const Text('TRIP NAME',
+            style: TextStyle(color: Color(0xFFD4870A), fontWeight: FontWeight.w900, letterSpacing: 2)),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          style: const TextStyle(color: Colors.white),
+          decoration: const InputDecoration(
+            hintText: 'e.g. Rub al Khali North',
+            hintStyle: TextStyle(color: Colors.grey),
+            enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFFD4870A))),
+            focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFFD4870A), width: 2)),
+          ),
         ),
-      ),
-      actions: [
-        TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('إلغاء')),
-        FilledButton(
-          onPressed: () {
-            final name = _ctrl.text.trim();
-            if (name.isNotEmpty) widget.onStart(name);
-          },
-          child: const Text('ابدأ التسجيل'),
-        ),
-      ],
-    );
-  }
-}
-
-// ── Settings Sheet ────────────────────────────────────────────────────────────
-
-class _SettingsSheet extends StatelessWidget {
-  final String cacheSize;
-  const _SettingsSheet({required this.cacheSize});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('الإعدادات',
-              style: TextStyle(
-                  fontSize: 20, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 16),
-          ListTile(
-            leading: const Icon(Icons.map_outlined),
-            title: const Text('حجم كاش الخرائط'),
-            subtitle: Text(cacheSize),
-            trailing: TextButton(
-              onPressed: () async {
-                await TileCacheService.clearCache();
-                if (context.mounted) Navigator.pop(context);
-              },
-              child: const Text('مسح'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('CANCEL', style: TextStyle(color: Colors.grey))),
+          ElevatedButton(
+            onPressed: () async {
+              if (controller.text.isNotEmpty) {
+                await provider.startRecording(controller.text);
+                if (ctx.mounted) Navigator.pop(ctx);
+                if (context.mounted) {
+                  Navigator.push(context,
+                      MaterialPageRoute(builder: (_) => const RecordingScreen()));
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFD4870A),
+              foregroundColor: Colors.black,
             ),
+            child: const Text('START', style: TextStyle(fontWeight: FontWeight.w900)),
           ),
-          const Divider(),
-          const ListTile(
-            leading: Icon(Icons.satellite_alt),
-            title: Text('مصدر الخرائط'),
-            subtitle: Text('ESRI World Imagery – مجاني بالكامل'),
-          ),
-          const ListTile(
-            leading: Icon(Icons.info_outline),
-            title: Text('الإصدار'),
-            subtitle: Text('Desert Track v1.0'),
-          ),
-          const SizedBox(height: 8),
         ],
       ),
     );

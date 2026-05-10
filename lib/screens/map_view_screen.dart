@@ -26,24 +26,16 @@ class _MapViewScreenState extends State<MapViewScreen> {
   }
 
   Future<void> _load() async {
-    final points =
-        await DatabaseService.instance.getTrackPoints(widget.trip.id!);
-    setState(() {
-      _points = points;
-      _loading = false;
-    });
+    final points = await DatabaseService.instance.getTrackPoints(widget.trip.id!);
+    setState(() { _points = points; _loading = false; });
   }
 
   @override
   Widget build(BuildContext context) {
-    final latLngs =
-        _points.map((p) => LatLng(p.latitude, p.longitude)).toList();
-    final center = latLngs.isNotEmpty
-        ? latLngs[latLngs.length ~/ 2]
-        : const LatLng(24.0, 45.0);
+    final latLngs = _points.map((p) => LatLng(p.latitude, p.longitude)).toList();
+    final center = latLngs.isNotEmpty ? latLngs[latLngs.length ~/ 2] : const LatLng(24.0, 45.0);
     final duration = widget.trip.endTime != null
-        ? GeoUtils.formatDuration(
-            widget.trip.endTime!.difference(widget.trip.startTime))
+        ? GeoUtils.formatDuration(widget.trip.endTime!.difference(widget.trip.startTime))
         : '--';
 
     return Scaffold(
@@ -53,26 +45,16 @@ class _MapViewScreenState extends State<MapViewScreen> {
         backgroundColor: Colors.transparent,
         foregroundColor: Colors.white,
         elevation: 0,
-        title: Text(widget.trip.name,
-            style: const TextStyle(fontWeight: FontWeight.w800)),
+        title: Text(widget.trip.name, style: const TextStyle(fontWeight: FontWeight.w800)),
         actions: [
           GestureDetector(
             onTap: () => _showExportMenu(context),
             child: Container(
               margin: const EdgeInsets.only(right: 12),
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: const Color(0xFFD4870A),
-                borderRadius: BorderRadius.circular(6),
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(color: const Color(0xFFD4870A), borderRadius: BorderRadius.circular(6)),
               child: const Row(children: [
-                Text('EXPORT',
-                    style: TextStyle(
-                        color: Colors.black,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 12,
-                        letterSpacing: 1)),
+                Text('EXPORT', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1)),
                 SizedBox(width: 4),
                 Icon(Icons.open_in_new, color: Colors.black, size: 14),
               ]),
@@ -81,38 +63,21 @@ class _MapViewScreenState extends State<MapViewScreen> {
         ],
       ),
       body: _loading
-          ? const Center(
-              child:
-                  CircularProgressIndicator(color: Color(0xFFD4870A)))
+          ? const Center(child: CircularProgressIndicator(color: Color(0xFFD4870A)))
           : Column(
               children: [
                 Expanded(
                   child: FlutterMap(
-                    options: MapOptions(
-                        initialCenter: center, initialZoom: 13),
+                    options: MapOptions(initialCenter: center, initialZoom: 13),
                     children: [
-                      TileLayer(
-                        urlTemplate: kSatelliteUrl,
-                        userAgentPackageName: 'com.deserttrack.app',
-                      ),
+                      TileLayer(urlTemplate: kSatelliteUrl, userAgentPackageName: 'com.deserttrack.app'),
                       if (latLngs.isNotEmpty) ...[
                         PolylineLayer(polylines: [
-                          Polyline(
-                              points: latLngs,
-                              color: const Color(0xFFD4870A),
-                              strokeWidth: 4)
+                          Polyline(points: latLngs, color: const Color(0xFFD4870A), strokeWidth: 4)
                         ]),
                         MarkerLayer(markers: [
-                          Marker(
-                            point: latLngs.first,
-                            child: const Icon(Icons.flag,
-                                color: Color(0xFF4CAF50), size: 32),
-                          ),
-                          Marker(
-                            point: latLngs.last,
-                            child: const Icon(Icons.flag,
-                                color: Color(0xFFCF6679), size: 32),
-                          ),
+                          Marker(point: latLngs.first, child: const Icon(Icons.flag, color: Color(0xFF4CAF50), size: 32)),
+                          Marker(point: latLngs.last, child: const Icon(Icons.flag, color: Color(0xFFCF6679), size: 32)),
                         ]),
                       ],
                     ],
@@ -120,14 +85,11 @@ class _MapViewScreenState extends State<MapViewScreen> {
                 ),
                 Container(
                   color: const Color(0xFF1A1A1A),
-                  padding: const EdgeInsets.symmetric(
-                      vertical: 16, horizontal: 24),
+                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
-                      _stat('DISTANCE',
-                          GeoUtils.formatDistance(
-                              widget.trip.totalDistance)),
+                      _stat('DISTANCE', GeoUtils.formatDistance(widget.trip.totalDistanceMeters)),
                       _divider(),
                       _stat('DURATION', duration),
                       _divider(),
@@ -142,20 +104,13 @@ class _MapViewScreenState extends State<MapViewScreen> {
 
   Widget _stat(String label, String value) => Column(
         children: [
-          Text(label,
-              style: const TextStyle(
-                  color: Colors.grey, fontSize: 10, letterSpacing: 2)),
+          Text(label, style: const TextStyle(color: Colors.grey, fontSize: 10, letterSpacing: 2)),
           const SizedBox(height: 4),
-          Text(value,
-              style: const TextStyle(
-                  color: Color(0xFFD4870A),
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900)),
+          Text(value, style: const TextStyle(color: Color(0xFFD4870A), fontSize: 18, fontWeight: FontWeight.w900)),
         ],
       );
 
-  Widget _divider() =>
-      Container(width: 1, height: 40, color: const Color(0xFF333333));
+  Widget _divider() => Container(width: 1, height: 40, color: const Color(0xFF333333));
 
   void _showExportMenu(BuildContext context) {
     showModalBottomSheet(
@@ -165,34 +120,18 @@ class _MapViewScreenState extends State<MapViewScreen> {
         mainAxisSize: MainAxisSize.min,
         children: [
           const SizedBox(height: 8),
-          Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                  color: Colors.grey,
-                  borderRadius: BorderRadius.circular(2))),
+          Container(width: 40, height: 4,
+              decoration: BoxDecoration(color: Colors.grey, borderRadius: BorderRadius.circular(2))),
           const SizedBox(height: 16),
           ListTile(
-            leading:
-                const Icon(Icons.map, color: Color(0xFFD4870A)),
-            title: const Text('Export GPX',
-                style: TextStyle(
-                    color: Colors.white, fontWeight: FontWeight.bold)),
-            onTap: () {
-              Navigator.pop(context);
-              ExportService.exportGPX(widget.trip, _points);
-            },
+            leading: const Icon(Icons.map, color: Color(0xFFD4870A)),
+            title: const Text('Export GPX', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            onTap: () { Navigator.pop(context); ExportService.exportGPX(widget.trip, _points); },
           ),
           ListTile(
-            leading:
-                const Icon(Icons.layers, color: Color(0xFFD4870A)),
-            title: const Text('Export KML',
-                style: TextStyle(
-                    color: Colors.white, fontWeight: FontWeight.bold)),
-            onTap: () {
-              Navigator.pop(context);
-              ExportService.exportKML(widget.trip, _points);
-            },
+            leading: const Icon(Icons.layers, color: Color(0xFFD4870A)),
+            title: const Text('Export KML', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            onTap: () { Navigator.pop(context); ExportService.exportKML(widget.trip, _points); },
           ),
           const SizedBox(height: 16),
         ],
