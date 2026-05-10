@@ -1,6 +1,7 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import '../models/trip.dart';
+import '../models/track_point.dart';
 
 class DatabaseService {
   static final DatabaseService instance = DatabaseService._();
@@ -22,25 +23,43 @@ class DatabaseService {
             totalDistance REAL DEFAULT 0
           )
         ''');
+        await db.execute('''
+          CREATE TABLE track_points (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            tripId INTEGER NOT NULL,
+            latitude REAL NOT NULL,
+            longitude REAL NOT NULL,
+            altitude REAL DEFAULT 0,
+            speed REAL DEFAULT 0,
+            timestamp TEXT NOT NULL,
+            FOREIGN KEY (tripId) REFERENCES trips(id) ON DELETE CASCADE
+          )
+        ''');
       },
     );
   }
 
-  Future<int> insertTrip(Trip trip) async {
-    return await _db!.insert('trips', trip.toMap());
-  }
+  Future<int> insertTrip(Trip trip) async =>
+      await _db!.insert('trips', trip.toMap());
 
   Future<List<Trip>> getTrips() async {
     final maps = await _db!.query('trips', orderBy: 'startTime DESC');
     return maps.map((m) => Trip.fromMap(m)).toList();
   }
 
-  Future<void> updateTrip(Trip trip) async {
-    await _db!.update('trips', trip.toMap(),
-        where: 'id = ?', whereArgs: [trip.id]);
-  }
+  Future<void> updateTrip(Trip trip) async =>
+      await _db!.update('trips', trip.toMap(),
+          where: 'id = ?', whereArgs: [trip.id]);
 
-  Future<void> deleteTrip(int id) async {
-    await _db!.delete('trips', where: 'id = ?', whereArgs: [id]);
+  Future<void> deleteTrip(int id) async =>
+      await _db!.delete('trips', where: 'id = ?', whereArgs: [id]);
+
+  Future<void> insertTrackPoint(TrackPoint point) async =>
+      await _db!.insert('track_points', point.toMap());
+
+  Future<List<TrackPoint>> getTrackPoints(int tripId) async {
+    final maps = await _db!.query('track_points',
+        where: 'tripId = ?', whereArgs: [tripId], orderBy: 'timestamp ASC');
+    return maps.map((m) => TrackPoint.fromMap(m)).toList();
   }
 }
