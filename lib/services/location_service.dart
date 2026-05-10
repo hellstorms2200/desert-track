@@ -5,6 +5,10 @@ class LocationService {
   static final LocationService instance = LocationService._();
   LocationService._();
 
+  StreamSubscription<Position>? _subscription;
+  bool _isTracking = false;
+  bool get isTracking => _isTracking;
+
   void initForegroundTask() {
     FlutterForegroundTask.init(
       androidNotificationOptions: AndroidNotificationOptions(
@@ -34,12 +38,22 @@ class LocationService {
         permission == LocationPermission.always;
   }
 
-  Stream<Position> getPositionStream() {
-    return Geolocator.getPositionStream(
+  Future<bool> startTracking(Function(Position) onPosition) async {
+    final hasPermission = await requestPermission();
+    if (!hasPermission) return false;
+    _subscription = Geolocator.getPositionStream(
       locationSettings: const LocationSettings(
         accuracy: LocationAccuracy.bestForNavigation,
         distanceFilter: 5,
       ),
-    );
+    ).listen((pos) => onPosition(pos));
+    _isTracking = true;
+    return true;
+  }
+
+  Future<void> stopTracking() async {
+    await _subscription?.cancel();
+    _subscription = null;
+    _isTracking = false;
   }
 }
