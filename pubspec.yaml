@@ -17,8 +17,6 @@ dependencies:
   # GPS location
   geolocator: ^11.0.0
 
-  # Background foreground service (keep GPS alive)
-  flutter_foreground_task: ^6.1.2
 
   # Local database
   sqflite: ^2.3.3+1
